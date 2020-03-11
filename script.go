@@ -12,10 +12,32 @@ import (
 )
 
 func main() {
-	processDir(".")
+
+	argsWithoutProg := os.Args[1:]
+
+	var path = "./"
+	var quality uint = 75
+
+	if len(argsWithoutProg) >= 1 {
+		path = argsWithoutProg[0]
+	}
+
+	if len(argsWithoutProg) >= 2 {
+		q, err := strconv.ParseUint(argsWithoutProg[1], 10, 0)
+
+		if err != nil {
+			// handle error
+			fmt.Println(err)
+			os.Exit(2)
+		} else {
+			quality = uint(q)
+		}
+	}
+
+	processDir(path, quality)
 }
 
-func processDir (dirPath string) error {
+func processDir (dirPath string, quality uint) error {
 	count := 0
 
 	filepath.Walk(dirPath, func(path string, info os.FileInfo, err error) error {
@@ -37,7 +59,7 @@ func processDir (dirPath string) error {
 		if mime.String() == "image/jpeg" {
 			count++
 			fmt.Println("Start optimize: " + path)
-			errorImage := optimizeImage(path)
+			errorImage := optimizeImage(path, quality)
 
 			if errorImage != nil {
 				fmt.Printf("Image optimization error \n")
@@ -55,23 +77,21 @@ func processDir (dirPath string) error {
 	return nil
 }
 
-func optimizeImage(path string) error {
+func optimizeImage(path string, quality uint) error {
 	id := guuid.New()
 	tmp := "/tmp/" + id.String()
 	tmp = "./../tmp/result/" + id.String()
 
-	// Красиво? а вот хуй работает. jpeg файл видите ли не того формата. и не намёка на то, что не нравится
 	err := mozjpegbin.NewCJpeg().
-		Quality(75).
+		Quality(quality).
 		InputFile(path).
 		OutputFile(tmp).
 		Run()
 
 	if  err != nil {
 		return err
-	} else {
-		fmt.Println(tmp)
 	}
+
 	err = copy(tmp, path)
 	if  err != nil {
 		return err
