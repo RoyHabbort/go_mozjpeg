@@ -6,6 +6,7 @@ import (
 	guuid "github.com/google/uuid"
 	mozjpegbin "github.com/nickalie/go-mozjpegbin"
 	"io"
+	"flag"
 	"os"
 	"path/filepath"
 	"strconv"
@@ -13,28 +14,17 @@ import (
 
 func main() {
 
-	argsWithoutProg := os.Args[1:]
+	var path string
+	var quality int
 
-	var path = "./"
-	var quality uint = 75
+	flag.StringVar(&path, "path", "./", "a string var")
+	flag.IntVar(&quality, "quality", 75, "a int var")
 
-	if len(argsWithoutProg) >= 1 {
-		path = argsWithoutProg[0]
-	}
+	flag.Parse()
 
-	if len(argsWithoutProg) >= 2 {
-		q, err := strconv.ParseUint(argsWithoutProg[1], 10, 0)
+	q := uint(quality)
 
-		if err != nil {
-			// handle error
-			fmt.Println(err)
-			os.Exit(2)
-		} else {
-			quality = uint(q)
-		}
-	}
-
-	processDir(path, quality)
+	processDir(path, q)
 }
 
 func processDir (dirPath string, quality uint) error {
