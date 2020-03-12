@@ -74,6 +74,8 @@ func processDir (dirPath string, quality uint) error {
 		return nil
 	})
 
+	<-time.After(time.Second * 2) //пока не обращайте внимания на этот код
+
 	fmt.Println("Total:", total)
 
 	fmt.Println("Complete for " + strconv.Itoa(count) + " images")
@@ -97,17 +99,7 @@ func optimizeImageWithChanel(pathChanel chan string, quality uint) {
 		if  err != nil {
 			panic(err)
 		} else {
-			err = copy(tmp, path)
-			if  err != nil {
-				panic(err)
-			} else {
-				err = os.Remove(tmp)
-				if err != nil {
-					panic(err)
-				} else {
-					fmt.Printf("Complete optimize: %v\n",  path)
-				}
-			}
+			move(tmp, path)
 		}
 	}
 }
@@ -132,4 +124,18 @@ func copy(src, dst string) error {
 		return err
 	}
 	return out.Close()
+}
+
+func move(src, dst string) {
+	err := copy(src, dst)
+	if  err != nil {
+		panic(err)
+	} else {
+		err = os.Remove(src)
+		if err != nil {
+			panic(err)
+		} else {
+			fmt.Printf("Complete optimize: %v\n",  dst)
+		}
+	}
 }
