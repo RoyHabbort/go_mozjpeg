@@ -10,6 +10,7 @@ import (
 	"os"
 	"path/filepath"
 	"strconv"
+	"time"
 )
 
 func main() {
@@ -31,7 +32,14 @@ func processDir (dirPath string, quality uint) error {
 	count := 0
 
 	var pathChanel chan string = make(chan string)
+
+	//типа многопоточность
 	go optimizeImageWithChanel(pathChanel, quality)
+	go optimizeImageWithChanel(pathChanel, quality)
+	go optimizeImageWithChanel(pathChanel, quality)
+	go optimizeImageWithChanel(pathChanel, quality)
+
+	total := 0.0
 
 	filepath.Walk(dirPath, func(path string, info os.FileInfo, err error) error {
 
@@ -50,13 +58,23 @@ func processDir (dirPath string, quality uint) error {
 		}
 
 		if mime.String() == "image/jpeg" {
+			t1 := time.Now().UnixNano()
+
 			count++
 			fmt.Println("Start optimize: " + path)
 			pathChanel <- path
+
+
+			t2 := time.Now().UnixNano()
+			dt := float64(t2 - t1) / 1000000.0
+			total += dt
+			fmt.Println(dt)
 		}
 
 		return nil
 	})
+
+	fmt.Println("Total:", total)
 
 	fmt.Println("Complete for " + strconv.Itoa(count) + " images")
 
