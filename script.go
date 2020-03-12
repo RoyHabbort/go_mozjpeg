@@ -1,12 +1,12 @@
 package main
 
 import (
+	"flag"
 	"fmt"
 	mimetype "github.com/gabriel-vasile/mimetype"
 	guuid "github.com/google/uuid"
 	mozjpegbin "github.com/nickalie/go-mozjpegbin"
 	"io"
-	"flag"
 	"os"
 	"path/filepath"
 	"strconv"
@@ -30,6 +30,9 @@ func main() {
 func processDir (dirPath string, quality uint) error {
 	count := 0
 
+	var pathChanel chan string = make(chan string)
+	go optimizeImageWithChanel(pathChanel, quality)
+
 	filepath.Walk(dirPath, func(path string, info os.FileInfo, err error) error {
 
 		if err != nil {
@@ -49,14 +52,7 @@ func processDir (dirPath string, quality uint) error {
 		if mime.String() == "image/jpeg" {
 			count++
 			fmt.Println("Start optimize: " + path)
-			errorImage := optimizeImage(path, quality)
-
-			if errorImage != nil {
-				fmt.Printf("Image optimization error \n")
-				panic(errorImage)
-			} else {
-				fmt.Printf("Complete optimize: %v\n",  info.Name())
-			}
+			pathChanel <- path
 		}
 
 		return nil
@@ -67,32 +63,35 @@ func processDir (dirPath string, quality uint) error {
 	return nil
 }
 
-func optimizeImage(path string, quality uint) error {
+func optimizeImageWithChanel(pathChanel chan string, quality uint) {
 	id := guuid.New()
 	tmp := "/tmp/" + id.String()
-	tmp = "./../tmp/result/" + id.String()
 
-	err := mozjpegbin.NewCJpeg().
-		Quality(quality).
-		InputFile(path).
-		OutputFile(tmp).
-		Run()
+	for {
+		path := <- pathChanel
 
-	if  err != nil {
-		return err
+		err := mozjpegbin.NewCJpeg().
+			Quality(quality).
+			InputFile(path).
+			OutputFile(tmp).
+			Run()
+
+		if  err != nil {
+			panic(err)
+		} else {
+			err = copy(tmp, path)
+			if  err != nil {
+				panic(err)
+			} else {
+				err = os.Remove(tmp)
+				if err != nil {
+					panic(err)
+				} else {
+					fmt.Printf("Complete optimize: %v\n",  path)
+				}
+			}
+		}
 	}
-
-	err = copy(tmp, path)
-	if  err != nil {
-		return err
-	}
-
-	err = os.Remove(tmp)
-	if err != nil {
-		return err
-	}
-
-	return nil
 }
 
 // Copy the src file to dst. Any existing file will be overwritten and will not
